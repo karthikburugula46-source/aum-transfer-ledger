@@ -278,6 +278,7 @@
   const state = {
     rows: [],
     lastSyncedAt: null,
+    lastSyncedAtRaw: null,
   };
 
   // ---------------------------------------------------------------------
@@ -421,6 +422,7 @@
     }));
 
     if(!metaRes.error && metaRes.data && metaRes.data.last_synced_at){
+      state.lastSyncedAtRaw = metaRes.data.last_synced_at;
       const d = new Date(metaRes.data.last_synced_at);
       state.lastSyncedAt = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) +
         ' ' + d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
@@ -429,15 +431,40 @@
     render();
   }
 
+  function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  // Polls sync_meta until last_synced_at moves past the value it had before
+  // this sync was triggered, then reloads the ledger. A real Actions run
+  // (queue + checkout + auth + install + execute) takes anywhere from ~10s
+  // to a bit over a minute, so we poll rather than guess a fixed delay.
+  async function waitForSyncToComplete(baselineSyncedAt, btn){
+    const POLL_INTERVAL_MS = 3000;
+    const MAX_WAIT_MS = 120000;
+    const startedAt = Date.now();
+
+    while(Date.now() - startedAt < MAX_WAIT_MS){
+      await sleep(POLL_INTERVAL_MS);
+      const { data, error } = await sb.from('sync_meta').select('last_synced_at').eq('id', true).single();
+      if(!error && data && data.last_synced_at && data.last_synced_at !== baselineSyncedAt){
+        await loadData();
+        showToast(`Synced — ${state.rows.length} record(s) loaded.`);
+        return;
+      }
+      const elapsed = Math.round((Date.now() - startedAt) / 1000);
+      btn.textContent = `🔄 Syncing… (${elapsed}s)`;
+    }
+    showToast('Sync is taking longer than expected — check the Actions tab on GitHub.', true);
+  }
+
   async function triggerManualSync(){
     const btn = $('syncBtn');
     btn.disabled = true;
     btn.textContent = '🔄 Syncing…';
     try{
+      const baselineSyncedAt = state.lastSyncedAtRaw;
       const { error } = await sb.functions.invoke('manual-sync');
       if(error) throw error;
-      showToast('Sync triggered — refreshing in a few seconds…');
-      setTimeout(loadData, 6000);
+      await waitForSyncToComplete(baselineSyncedAt, btn);
     }catch(e){
       showToast('Could not trigger sync: ' + (e.message || e), true);
     }

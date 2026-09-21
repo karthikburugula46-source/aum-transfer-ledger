@@ -22,7 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-save @supabase/supabase-js googleapis
+          cache: 'npm'
+      - run: npm ci
       - run: npm run sync
         env:
           SHEET_ID: ${{ secrets.SHEET_ID }}
