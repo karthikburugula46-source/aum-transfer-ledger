@@ -1,0 +1,12 @@
+{
+  "name": "aum-transfer-ledger",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "node scripts/sync.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "googleapis": "^144.0.0"
+  }
+}

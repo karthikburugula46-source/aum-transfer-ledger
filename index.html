@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AUM Transfer Ledger</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{
+    color-scheme: light;
+    --bg: #F5F8FC;
+    --bg-card: #FFFFFF;
+    --bg-card-hover: #EEF3FA;
+    --hairline: rgba(13,60,120,0.12);
+    --hairline-strong: rgba(13,60,120,0.24);
+    --blue: #0D4C92;
+    --blue-dim: #0A3A70;
+    --blue-bright: #1565C0;
+    --red: #D62B2B;
+    --red-bright: #E2231A;
+    --text-primary: #12233F;
+    --text-secondary: #4B5F7C;
+    --text-tertiary: #8296AF;
+    --completed: #0D4C92;
+    --completed-bg: rgba(13,76,146,0.10);
+    --overdue: #B02020;
+    --cooling: #D6A300;
+    --cooling-bg: rgba(214,163,0,0.10);
+    --amcpending: #6A3EA1;
+    --amcpending-bg: rgba(106,62,161,0.10);
+    --green: #2E7D32;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--bg);color:var(--text-primary);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    padding:36px 28px 60px;min-height:100vh;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  .masthead{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    padding-bottom:22px;margin-bottom:22px;border-bottom:2px solid var(--blue);
+    flex-wrap:wrap;gap:16px;
+  }
+  .brand-row{display:flex;align-items:center;gap:14px;}
+  .brand-mark{
+    width:46px;height:46px;border-radius:10px;flex-shrink:0;background:var(--blue);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:19px;
+  }
+  .eyebrow{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.18em;color:var(--red-bright);text-transform:uppercase;margin-bottom:8px;font-weight:700;}
+  .masthead h1{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:34px;letter-spacing:-0.01em;margin:0;color:var(--blue-dim);}
+  .masthead .sub{color:var(--text-secondary);font-size:13.5px;margin-top:6px;max-width:540px;line-height:1.5;}
+  .totalbox{text-align:right;}
+  .totalbox .label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary);font-family:'JetBrains Mono',ui-monospace,monospace;}
+  .totalbox .val{font-family:'Fraunces',Georgia,serif;font-size:40px;font-weight:600;color:var(--red-bright);line-height:1.1;margin-top:2px;}
+  .totalbox .val span{font-size:18px;color:var(--text-secondary);font-family:'Inter',sans-serif;font-weight:500;}
+  .totalbox .highest-block{margin-top:10px;padding-top:10px;border-top:1px solid var(--hairline);display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+  .totalbox .highest-val{font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:600;color:var(--blue);line-height:1.1;}
+  .totalbox .highest-val span{font-size:12px;color:var(--text-secondary);font-family:'Inter',sans-serif;font-weight:500;}
+  .totalbox .highest-partner{font-size:11.5px;color:var(--text-secondary);margin-top:1px;max-width:220px;text-align:right;}
+  .totalbox .highest-block.top{margin-top:0;padding-top:0;border-top:none;}
+  .totalbox .highest-block.top .highest-val{font-size:32px;}
+  .totalbox .asof{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;color:var(--text-tertiary);margin-top:8px;}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px;}
+  .kpi{background:var(--bg-card);border:1px solid var(--hairline);border-radius:10px;padding:16px 16px 14px;box-shadow:0 1px 2px rgba(13,60,120,0.05);border-top:3px solid var(--hairline);}
+  .kpi .k-label{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--text-tertiary);}
+  .kpi .k-val{font-family:'Fraunces',Georgia,serif;font-size:25px;font-weight:600;margin-top:6px;color:var(--text-primary);}
+  .kpi .k-sub{font-size:11.5px;color:var(--text-secondary);margin-top:4px;}
+  .kpi.neutral{border-top-color:var(--text-tertiary);}
+  .kpi.boxed{padding:16px;display:flex;flex-direction:column;gap:12px;}
+  .kpi.boxed .k-val{font-size:30px;margin-top:6px;}
+  .kpi.boxed .sub-box{background:var(--bg);border:1px solid var(--hairline);border-radius:8px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;margin-top:2px;}
+  .kpi.boxed .sub-box .sub-label{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary);}
+  .kpi.boxed .sub-box .sub-val{font-family:'Fraunces',Georgia,serif;font-size:16px;font-weight:600;color:var(--text-primary);}
+  .kpi.boxed.blue{border-top-color:var(--blue);} .kpi.boxed.blue .k-val{color:var(--blue);} .kpi.boxed.blue .sub-box .sub-val{color:var(--blue);}
+  .kpi.boxed.amber{border-top-color:var(--cooling);} .kpi.boxed.amber .k-val{color:var(--cooling);} .kpi.boxed.amber .sub-box .sub-val{color:var(--cooling);}
+  .kpi.boxed.purple{border-top-color:var(--amcpending);} .kpi.boxed.purple .k-val{color:var(--amcpending);} .kpi.boxed.purple .sub-box .sub-val{color:var(--amcpending);}
+
+  .status-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:26px;}
+
+  .ledger-panel{background:var(--bg-card);border:1px solid var(--hairline);border-radius:10px;overflow:hidden;box-shadow:0 1px 2px rgba(13,60,120,0.05);}
+  .register-toolbar{margin-bottom:14px;}
+  .register-toolbar h3{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:15px;margin:0 0 10px;color:var(--blue-dim);}
+  .toolbar-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  .ledger-search{display:flex;align-items:center;gap:8px;margin-right:20px;}
+  .ledger-search input{
+    width:230px;padding:8px 12px;border-radius:7px;border:1px solid var(--hairline-strong);
+    font-family:'Inter',sans-serif;font-size:13px;color:var(--text-primary);outline:none;background:#fff;
+  }
+  .ledger-search input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(21,101,192,0.12);}
+  .ledger-search .search-count{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:var(--text-tertiary);white-space:nowrap;}
+  .ghost-btn{background:#fff;border:1px solid var(--hairline-strong);color:var(--blue-dim);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;letter-spacing:.04em;padding:8px 14px;border-radius:6px;cursor:pointer;transition:all .15s ease;}
+  .ghost-btn:hover{background:var(--bg-card-hover);border-color:var(--blue);}
+  .ghost-btn:disabled{opacity:.5;cursor:wait;}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end;}
+  .icon-btn{display:inline-flex;align-items:center;gap:6px;}
+  .view-only-badge{
+    display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',ui-monospace,monospace;
+    font-size:10px;letter-spacing:.06em;color:var(--text-tertiary);text-transform:uppercase;
+    background:var(--bg);border:1px solid var(--hairline);padding:5px 10px;border-radius:6px;
+  }
+  .view-only-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--text-tertiary);}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  thead th{text-align:left;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--blue-dim);font-weight:600;padding:10px;border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);background:rgba(13,76,146,0.04);}
+  thead th.num{text-align:right;}
+  tbody td{padding:9px 10px;border-bottom:1px solid var(--hairline);color:var(--text-primary);vertical-align:middle;}
+  tbody tr:hover{background:var(--bg-card-hover);}
+  tbody td.num{text-align:right;font-family:'JetBrains Mono',ui-monospace,monospace;}
+
+  .status-pill{
+    font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;padding:3px 9px;border-radius:4px;
+    letter-spacing:.02em;display:inline-block;min-width:96px;text-align:center;line-height:1.6;
+  }
+  .status-pill.completed{background-color:var(--completed-bg);color:var(--completed);}
+  .status-pill.cooling{background-color:var(--cooling-bg);color:var(--cooling);}
+  .status-pill.amcpending{background-color:var(--amcpending-bg);color:var(--amcpending);}
+
+  .days-cell{display:flex;align-items:center;justify-content:flex-end;gap:6px;}
+  .days-flag{width:6px;height:6px;border-radius:50%;background:var(--text-tertiary);}
+  .days-flag.warn{background:var(--overdue);}
+
+  .ledger-foot{padding:14px 20px 18px;font-size:11px;color:var(--text-tertiary);display:flex;justify-content:space-between;border-top:1px solid var(--hairline);flex-wrap:wrap;gap:6px;}
+
+  @media (max-width:920px){
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .masthead{flex-direction:column;align-items:flex-start;}
+    .totalbox{text-align:left;}
+    .totalbox .highest-block{align-items:flex-start;}
+    .totalbox .highest-partner{text-align:left;}
+    table{font-size:11.5px;}
+  }
+
+  .upload-toast{
+    position:fixed;bottom:20px;right:20px;background:var(--blue-dim);color:#fff;
+    padding:10px 16px;border-radius:8px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;
+    box-shadow:0 4px 14px rgba(13,60,120,0.25);opacity:0;transform:translateY(8px);
+    transition:all .25s ease;pointer-events:none;z-index:50;max-width:340px;
+  }
+  .upload-toast.show{opacity:1;transform:translateY(0);}
+  .upload-toast.error{background:#B02020;}
+
+  @media print{
+    body{padding:0;background:#fff;}
+    .btn-row{display:none !important;}
+    .ledger-panel,.kpi,.masthead{box-shadow:none;}
+  }
+
+  /* --- Auth gate --- */
+  .auth-screen{
+    max-width:380px;margin:14vh auto 0;background:var(--bg-card);border:1px solid var(--hairline);
+    border-radius:12px;padding:32px 30px;box-shadow:0 2px 10px rgba(13,60,120,0.08);text-align:center;
+  }
+  .auth-screen .brand-mark{margin:0 auto 16px;}
+  .auth-screen h1{font-family:'Fraunces',Georgia,serif;font-size:22px;color:var(--blue-dim);margin:0 0 6px;}
+  .auth-screen p{color:var(--text-secondary);font-size:13px;line-height:1.5;margin:0 0 20px;}
+  .auth-screen input{
+    width:100%;padding:11px 13px;border-radius:7px;border:1px solid var(--hairline-strong);
+    font-family:'Inter',sans-serif;font-size:14px;color:var(--text-primary);outline:none;margin-bottom:12px;
+  }
+  .auth-screen input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(21,101,192,0.12);}
+  .auth-screen button{
+    width:100%;padding:11px;border:none;border-radius:7px;background:var(--blue);color:#fff;
+    font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;letter-spacing:.04em;cursor:pointer;
+  }
+  .auth-screen button:hover{background:var(--blue-dim);}
+  .auth-screen button:disabled{opacity:.55;cursor:wait;}
+  .auth-screen .status-msg{font-size:12px;margin-top:14px;min-height:16px;color:var(--text-secondary);}
+  .auth-screen .status-msg.error{color:var(--overdue);}
+  .auth-screen .status-msg.ok{color:var(--green);}
+  #dashboardWrap{display:none;}
+  .signout-row{display:flex;justify-content:flex-end;margin-bottom:-10px;}
+  .signout-row button{background:none;border:none;color:var(--text-tertiary);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;cursor:pointer;text-decoration:underline;padding:0;}
+</style>
+</head>
+<body>
+
+<div class="auth-screen" id="authScreen">
+  <div class="brand-mark">AP</div>
+  <h1>AUM Transfer Ledger</h1>
+  <p>Sign in with your team email to view the live partner book. We'll send you a one-time login link — no password needed.</p>
+  <input type="email" id="authEmail" placeholder="you@company.com" autocomplete="email">
+  <button id="authSendBtn" onclick="sendMagicLink()">Send login link</button>
+  <div class="status-msg" id="authStatus"></div>
+</div>
+
+<div class="wrap" id="dashboardWrap">
+
+  <div class="signout-row"><button onclick="signOut()">Sign out</button></div>
+
+  <div class="masthead">
+    <div>
+      <div class="brand-row">
+        <div class="brand-mark">AP</div>
+        <div>
+          <div class="eyebrow">Partner Book · AUM Migration</div>
+          <h1>AUM Transfer Ledger</h1>
+        </div>
+      </div>
+      <div class="sub">Tracking assets moving in-house from referral partners, from AP receipt through AMC/RTA settlement. Data syncs automatically when the Google Sheet changes, or on demand below.</div>
+    </div>
+    <div class="totalbox">
+      <div class="highest-block top">
+        <div class="label">Top Partner AUM (₹ Cr)</div>
+        <div class="highest-val" id="kpiTotalValue">₹0.00<span>Cr</span></div>
+        <div class="highest-partner" id="kpiHighestPartner">—</div>
+      </div>
+      <div class="asof" id="asOfLabel">As of —</div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi boxed blue">
+      <div class="k-label">Total AUM</div>
+      <div class="k-val" id="kpiTotalAUM">₹0.00 Cr</div>
+      <div class="sub-box"><span class="sub-label">Total Partners</span><span class="sub-val" id="kpiCount">0</span></div>
+    </div>
+    <div class="kpi boxed blue">
+      <div class="k-label">AUM Settled</div>
+      <div class="k-val" id="kpiCompletedVal">₹0.00 Cr</div>
+      <div class="sub-box"><span class="sub-label">Completed</span><span class="sub-val" id="kpiCompleted">0</span></div>
+    </div>
+    <div class="kpi boxed purple">
+      <div class="k-label">AUM In Process</div>
+      <div class="k-val" id="kpiPendingVal">₹0.00 Cr</div>
+      <div class="sub-box"><span class="sub-label">In Progress</span><span class="sub-val" id="kpiPending">0</span></div>
+    </div>
+    <div class="kpi boxed blue">
+      <div class="k-label" id="kpiTopRmLabel">Top RM by AUM</div>
+      <div class="k-val" id="kpiTopRmValue">₹0.00 Cr</div>
+      <div class="sub-box"><span class="sub-label">Partners</span><span class="sub-val" id="kpiTopRmPartners">0</span></div>
+    </div>
+  </div>
+
+  <div class="status-row">
+    <div class="kpi boxed amber">
+      <div class="k-label">Cooling Period AUM</div>
+      <div class="k-val" id="kpiCoolingVal">₹0.00 Cr</div>
+      <div class="sub-box"><span class="sub-label">Doc Under Cooling Period</span><span class="sub-val" id="kpiCooling">0</span></div>
+    </div>
+    <div class="kpi boxed purple">
+      <div class="k-label">AMC/RTA AUM</div>
+      <div class="k-val" id="kpiAmcPendingVal">₹0.00 Cr</div>
+      <div class="sub-box"><span class="sub-label">Submitted to AMC/RTA</span><span class="sub-val" id="kpiAmcPending">0</span></div>
+    </div>
+    <div class="kpi neutral">
+      <div class="k-label">Avg. Days Since Receipt</div>
+      <div class="k-val" id="kpiAvgDays">0</div>
+      <div class="k-sub" id="kpiOldest">oldest: — days</div>
+    </div>
+  </div>
+
+  <div class="register-toolbar">
+    <h3>Transfer Register</h3>
+    <div class="toolbar-row">
+      <div class="ledger-search">
+        <input type="text" id="searchInput" placeholder="Search partner, ARN no., RM name, or status…" oninput="renderTable()">
+        <span class="search-count" id="searchCount"></span>
+      </div>
+      <div class="btn-row">
+        <button class="ghost-btn icon-btn" id="syncBtn" onclick="manualSync()" title="Trigger an immediate sync from the Google Sheet">🔄 Sync Now</button>
+        <button class="ghost-btn icon-btn" id="snapshotBtn" onclick="downloadSnapshot()" title="Download a KPI snapshot image">📷 Snapshot</button>
+        <button class="ghost-btn icon-btn" id="pdfBtn" onclick="downloadPDF()">⬇ PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ledger-panel">
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Partner Name</th>
+            <th>ARN No.</th>
+            <th>RM Name</th>
+            <th class="num">Value (₹ Cr)</th>
+            <th>Received Date</th>
+            <th>Submitted Date</th>
+            <th>Completed Date</th>
+            <th>AMC Progress</th>
+            <th class="num">Days</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="ledger-foot">
+      <span id="fileNameLabel2">Source: —</span>
+      <span id="lastCalc">Recalculated just now</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="upload-toast" id="uploadToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script>
+/* ---- Supabase project config (public URL + anon key; safe to embed —
+   Row Level Security on the tables is the real access boundary) ---- */
+const SUPABASE_URL = 'https://ertjlyutlwxqrxktecsq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVydGpseXV0bHd4cXJ4a3RlY3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDUzMDUsImV4cCI6MjEwNTU4MTMwNX0.FvKoU4ZjfJcyKiYvTdQF519AGfp9VSKHuKlIyPWJumc';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* TEMPORARY: login gate disabled for initial pipeline testing. Set back to true
+   and re-tighten the ledger_rows/sync_meta RLS policies (see README) before
+   sharing this URL with the team. */
+const AUTH_ENABLED = false;
+
+const STATUS_LABEL = {completed:'Completed', cooling:'Cooling Period', amcpending:'Submitted to AMC/RTA'};
+
+/* Shown only until the first successful Supabase fetch after login — never real production data. */
+const bakedInData = [
+  {partner:"Sample Partner Ltd.", arn:"ARN-000000", rm:"—", value:0, date:"", submittedDate:"", completedDate:"", amc:"", status:"cooling"},
+];
+
+let data = [];
+let lastUpdated = '—';
+let lastFileName = 'Google Sheet (awaiting first sync)';
+
+function daysSince(iso){
+  if(!iso) return 0;
+  const d = new Date(iso+"T00:00:00");
+  if(isNaN(d)) return 0;
+  return Math.max(0, Math.round((Date.now()-d.getTime())/86400000));
+}
+
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>]/g, c => ({'&':'&lt;','<':'&lt;','>':'&gt;'}[c] || c));
+}
+
+function showToast(msg, isError){
+  const t = document.getElementById('uploadToast');
+  t.textContent = msg;
+  t.className = 'upload-toast show' + (isError ? ' error' : '');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>{ t.className = 'upload-toast'; }, 4200);
+}
+
+function matchesSearch(row, term){
+  if(!term) return true;
+  const st = (row.status==='completed'||row.status==='cooling'||row.status==='amcpending') ? row.status : 'cooling';
+  const haystack = [row.partner, row.arn, row.rm, STATUS_LABEL[st]].join(' ').toLowerCase();
+  return haystack.includes(term);
+}
+
+function renderTable(){
+  const tbody = document.getElementById('tableBody');
+  const searchEl = document.getElementById('searchInput');
+  const term = searchEl ? searchEl.value.trim().toLowerCase() : '';
+  const rows = data.filter(row => matchesSearch(row, term));
+  tbody.innerHTML = "";
+  rows.forEach((row)=>{
+    const tr = document.createElement('tr');
+    const days = daysSince(row.date);
+    const st = (row.status==='completed'||row.status==='cooling'||row.status==='amcpending') ? row.status : 'cooling';
+    tr.innerHTML = `
+      <td>${escapeHtml(row.partner)}</td>
+      <td>${escapeHtml(row.arn)}</td>
+      <td>${escapeHtml(row.rm)}</td>
+      <td class="num">${Number(row.value).toFixed(2)}</td>
+      <td>${row.date||''}</td>
+      <td>${row.submittedDate||'—'}</td>
+      <td>${row.completedDate||'—'}</td>
+      <td>${row.amc||'—'}</td>
+      <td class="num"><div class="days-cell"><span class="days-flag ${days>90?'warn':''}"></span>${days}</div></td>
+      <td><span class="status-pill ${st}">${STATUS_LABEL[st]}</span></td>`;
+    tbody.appendChild(tr);
+  });
+  const countEl = document.getElementById('searchCount');
+  if(countEl) countEl.textContent = term ? `${rows.length} of ${data.length} matching` : '';
+}
+
+function downloadPDF(){
+  const btn = document.getElementById('pdfBtn');
+  try{
+    if(!window.jspdf || !window.jspdf.jsPDF){ showToast('PDF engine failed to load.', true); return; }
+    if(btn) btn.disabled = true;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'landscape', unit:'pt', format:'a4' });
+
+    const searchEl = document.getElementById('searchInput');
+    const term = searchEl ? searchEl.value.trim().toLowerCase() : '';
+    const rows = data.filter(row => matchesSearch(row, term));
+
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(16);
+    doc.setTextColor(10,58,112);
+    doc.text('AUM Transfer Ledger — Transfer Register', 40, 40);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(10);
+    doc.setTextColor(75,95,124);
+    const stampLine = `As of ${lastUpdated}${term ? `  ·  filtered: "${searchEl.value.trim()}"  ·  ${rows.length} of ${data.length} records` : `  ·  ${rows.length} records`}`;
+    doc.text(stampLine, 40, 58);
+
+    const body = rows.map(row=>{
+      const days = daysSince(row.date);
+      const st = (row.status==='completed'||row.status==='cooling'||row.status==='amcpending') ? row.status : 'cooling';
+      return [
+        row.partner||'', row.arn||'', row.rm||'', Number(row.value||0).toFixed(2),
+        row.date||'', row.submittedDate||'—', row.completedDate||'—', row.amc||'—',
+        String(days), STATUS_LABEL[st]
+      ];
+    });
+
+    doc.autoTable({
+      startY: 72,
+      head: [['Partner Name','ARN No.','RM Name','Value (₹ Cr)','Received','Submitted','Completed','AMC','Days','Status']],
+      body: body,
+      styles: { font:'helvetica', fontSize:8.5, cellPadding:5, textColor:[18,35,63] },
+      headStyles: { fillColor:[13,76,146], textColor:[255,255,255], fontStyle:'bold' },
+      alternateRowStyles: { fillColor:[245,248,252] },
+      columnStyles: { 3:{halign:'right'}, 8:{halign:'right'} },
+      margin: { left:40, right:40 },
+      didDrawPage: function(hookData){
+        doc.setFontSize(8);
+        doc.setTextColor(130,150,175);
+        doc.text('AssetPlus · Partner Book · AUM Migration', 40, doc.internal.pageSize.getHeight()-20);
+        doc.text('Page ' + hookData.pageNumber, doc.internal.pageSize.getWidth()-70, doc.internal.pageSize.getHeight()-20);
+      }
+    });
+
+    const stamp = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+    doc.save(`AUM_Transfer_Register_${stamp}.pdf`);
+  }catch(e){
+    showToast('Could not build the PDF: ' + (e.message||e), true);
+  }
+  if(btn) btn.disabled = false;
+}
+
+function downloadSnapshot(){
+  const btn = document.getElementById('snapshotBtn');
+  try{
+    if(btn) btn.disabled = true;
+    const W = 1200, PAD = 40;
+    const canvas = document.createElement('canvas');
+    const scale = 2;
+    const rowsInfo = [
+      { label:'Total AUM', val: document.getElementById('kpiTotalAUM').textContent, sub:'Total Partners', subVal: document.getElementById('kpiCount').textContent, color:'#0D4C92' },
+      { label:'AUM Settled', val: document.getElementById('kpiCompletedVal').textContent, sub:'Completed', subVal: document.getElementById('kpiCompleted').textContent, color:'#0D4C92' },
+      { label:'AUM In Process', val: document.getElementById('kpiPendingVal').textContent, sub:'In Progress', subVal: document.getElementById('kpiPending').textContent, color:'#6A3EA1' },
+      { label: document.getElementById('kpiTopRmLabel').textContent, val: document.getElementById('kpiTopRmValue').textContent, sub:'Partners', subVal: document.getElementById('kpiTopRmPartners').textContent, color:'#0D4C92' },
+      { label:'Cooling Period AUM', val: document.getElementById('kpiCoolingVal').textContent, sub:'Doc Under Cooling Period', subVal: document.getElementById('kpiCooling').textContent, color:'#D6A300' },
+      { label:'AMC/RTA AUM', val: document.getElementById('kpiAmcPendingVal').textContent, sub:'Submitted to AMC/RTA', subVal: document.getElementById('kpiAmcPending').textContent, color:'#6A3EA1' },
+      { label:'Avg. Days Since Receipt', val: document.getElementById('kpiAvgDays').textContent, sub:'Oldest', subVal: (document.getElementById('kpiOldest').textContent||'').replace('oldest: ',''), color:'#8296AF' }
+    ];
+    const cols = 4;
+    const cardW = (W - PAD*2 - (cols-1)*18) / cols;
+    const cardH = 118;
+    const rowsCount = Math.ceil(rowsInfo.length/cols);
+    const headerH = 150;
+    const H = headerH + rowsCount*(cardH+18) + PAD;
+    canvas.width = W*scale; canvas.height = H*scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#F5F8FC'; ctx.fillRect(0,0,W,H);
+
+    ctx.fillStyle = '#0D4C92';
+    ctx.fillRect(0,0,W,4);
+    ctx.fillStyle = '#12233F';
+    ctx.font = '700 26px Georgia, serif';
+    ctx.fillText('AUM Transfer Ledger', PAD, 52);
+    ctx.fillStyle = '#4B5F7C';
+    ctx.font = '13px Arial, sans-serif';
+    ctx.fillText('Partner Book · AUM Migration', PAD, 74);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#8296AF';
+    ctx.font = '11px monospace';
+    ctx.fillText('TOP PARTNER AUM (₹ Cr)', W-PAD, 40);
+    ctx.fillStyle = '#0D4C92';
+    ctx.font = '700 26px Georgia, serif';
+    ctx.fillText(document.getElementById('kpiTotalValue').textContent.replace('Cr',' Cr'), W-PAD, 68);
+    ctx.fillStyle = '#4B5F7C';
+    ctx.font = '12px Arial, sans-serif';
+    ctx.fillText(document.getElementById('kpiHighestPartner').textContent, W-PAD, 86);
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#8296AF';
+    ctx.fillText(document.getElementById('asOfLabel').textContent, W-PAD, 104);
+    ctx.textAlign = 'left';
+
+    ctx.strokeStyle = 'rgba(13,60,120,0.18)';
+    ctx.beginPath(); ctx.moveTo(PAD, headerH-24); ctx.lineTo(W-PAD, headerH-24); ctx.stroke();
+
+    rowsInfo.forEach((c,i)=>{
+      const col = i % cols, row = Math.floor(i/cols);
+      const x = PAD + col*(cardW+18);
+      const y = headerH + row*(cardH+18);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.strokeStyle = 'rgba(13,60,120,0.12)';
+      ctx.lineWidth = 1;
+      ctx.fillRect(x,y,cardW,cardH);
+      ctx.strokeRect(x,y,cardW,cardH);
+      ctx.fillStyle = c.color;
+      ctx.fillRect(x,y,cardW,3);
+
+      ctx.fillStyle = '#8296AF';
+      ctx.font = '600 10px monospace';
+      wrapText(ctx, c.label.toUpperCase(), x+14, y+24, cardW-28, 12);
+
+      ctx.fillStyle = c.color;
+      ctx.font = '700 22px Georgia, serif';
+      ctx.fillText(c.val, x+14, y+58);
+
+      ctx.fillStyle = '#F5F8FC';
+      ctx.fillRect(x+14, y+72, cardW-28, 30);
+      ctx.fillStyle = '#8296AF';
+      ctx.font = '600 8.5px monospace';
+      ctx.fillText(c.sub.toUpperCase(), x+22, y+90);
+      ctx.fillStyle = c.color;
+      ctx.textAlign = 'right';
+      ctx.font = '700 13px Georgia, serif';
+      ctx.fillText(String(c.subVal), x+cardW-22, y+91);
+      ctx.textAlign = 'left';
+    });
+
+    canvas.toBlob(function(blob){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+      a.href = url; a.download = `AUM_Snapshot_${stamp}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }catch(e){
+    showToast('Could not build the snapshot: ' + (e.message||e), true);
+  }
+  if(btn) btn.disabled = false;
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+  const words = String(text).split(' ');
+  let line = '', yy = y;
+  for(let i=0;i<words.length;i++){
+    const test = line + words[i] + ' ';
+    if(ctx.measureText(test).width > maxWidth && line){
+      ctx.fillText(line, x, yy);
+      line = words[i] + ' ';
+      yy += lineHeight;
+    } else line = test;
+  }
+  ctx.fillText(line, x, yy);
+}
+
+function recalc(){
+  const totalValue = data.reduce((s,r)=>s+(Number(r.value)||0),0);
+  const highestValue = data.length ? Math.max(...data.map(r=>Number(r.value)||0)) : 0;
+  const highestRow = data.length ? data.reduce((best,r)=> (Number(r.value)||0) > (Number(best.value)||0) ? r : best, data[0]) : null;
+
+  const completedRows = data.filter(r=>r.status==='completed');
+  const coolingRows = data.filter(r=>r.status==='cooling');
+  const amcRows = data.filter(r=>r.status==='amcpending');
+  const inProgressRows = data.filter(r => r.status!=='completed' && (r.status==='cooling' || r.status==='amcpending'));
+
+  const completedVal = completedRows.reduce((s,r)=>s+(Number(r.value)||0),0);
+  const inProgressVal = inProgressRows.reduce((s,r)=>s+(Number(r.value)||0),0);
+  const coolingVal = coolingRows.reduce((s,r)=>s+(Number(r.value)||0),0);
+  const amcVal = amcRows.reduce((s,r)=>s+(Number(r.value)||0),0);
+  const daysArr = data.map(r=>daysSince(r.date));
+  const avgDays = daysArr.length ? Math.round(daysArr.reduce((s,d)=>s+d,0)/daysArr.length) : 0;
+  const oldest = daysArr.length ? Math.max(...daysArr) : 0;
+
+  const rmTotals = {};
+  data.forEach(r=>{
+    const rm = (r.rm||'').trim();
+    if(!rm) return;
+    if(!rmTotals[rm]) rmTotals[rm] = {value:0, partners:new Set()};
+    rmTotals[rm].value += Number(r.value)||0;
+    if(r.partner) rmTotals[rm].partners.add(r.partner);
+  });
+  let topRm = null, topRmVal = -1;
+  Object.keys(rmTotals).forEach(rm=>{
+    if(rmTotals[rm].value > topRmVal){ topRmVal = rmTotals[rm].value; topRm = rm; }
+  });
+  const topRmPartners = topRm ? rmTotals[topRm].partners.size : 0;
+
+  document.getElementById('kpiTotalValue').innerHTML = `₹${highestValue.toFixed(2)}<span>Cr</span>`;
+  document.getElementById('kpiHighestPartner').textContent = highestRow ? highestRow.partner : '—';
+  document.getElementById('kpiTotalAUM').textContent = `₹${totalValue.toFixed(2)} Cr`;
+  document.getElementById('kpiCount').textContent = data.length;
+  document.getElementById('kpiCompleted').textContent = completedRows.length;
+  document.getElementById('kpiCompletedVal').textContent = `₹${completedVal.toFixed(2)} Cr`;
+  document.getElementById('kpiPending').textContent = inProgressRows.length;
+  document.getElementById('kpiPendingVal').textContent = `₹${inProgressVal.toFixed(2)} Cr`;
+  document.getElementById('kpiAvgDays').textContent = avgDays;
+  document.getElementById('kpiOldest').textContent = `oldest: ${oldest} days`;
+  document.getElementById('kpiCooling').textContent = coolingRows.length;
+  document.getElementById('kpiCoolingVal').textContent = `₹${coolingVal.toFixed(2)} Cr`;
+  document.getElementById('kpiAmcPending').textContent = amcRows.length;
+  document.getElementById('kpiAmcPendingVal').textContent = `₹${amcVal.toFixed(2)} Cr`;
+  document.getElementById('kpiTopRmLabel').textContent = topRm ? `Top RM · ${topRm}` : 'Top RM by AUM';
+  document.getElementById('kpiTopRmValue').textContent = `₹${(topRm?topRmVal:0).toFixed(2)} Cr`;
+  document.getElementById('kpiTopRmPartners').textContent = topRmPartners;
+  document.getElementById('asOfLabel').textContent = `As of ${lastUpdated}`;
+  document.getElementById('fileNameLabel2').textContent = `Source: ${lastFileName}`;
+  document.getElementById('lastCalc').textContent = 'Recalculated ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+
+/* ---- Auth + data loading ---- */
+
+async function sendMagicLink(){
+  const emailEl = document.getElementById('authEmail');
+  const btn = document.getElementById('authSendBtn');
+  const statusEl = document.getElementById('authStatus');
+  const email = (emailEl.value||'').trim();
+  if(!email){ statusEl.textContent = 'Enter your email first.'; statusEl.className = 'status-msg error'; return; }
+  btn.disabled = true;
+  statusEl.textContent = 'Sending link…';
+  statusEl.className = 'status-msg';
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.href }
+  });
+  btn.disabled = false;
+  if(error){
+    statusEl.textContent = error.message;
+    statusEl.className = 'status-msg error';
+    return;
+  }
+  statusEl.textContent = 'Check your email for the login link.';
+  statusEl.className = 'status-msg ok';
+}
+
+async function signOut(){
+  await sb.auth.signOut();
+  showAuthScreen();
+}
+
+function showAuthScreen(){
+  document.getElementById('authScreen').style.display = '';
+  document.getElementById('dashboardWrap').style.display = 'none';
+}
+
+async function showDashboard(){
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('dashboardWrap').style.display = '';
+  data = bakedInData.slice();
+  renderTable();
+  recalc();
+  await loadFromSupabase();
+}
+
+async function loadFromSupabase(){
+  const [{ data: rows, error: rowsErr }, { data: meta, error: metaErr }] = await Promise.all([
+    sb.from('ledger_rows').select('*').order('date', { ascending: true }),
+    sb.from('sync_meta').select('*').eq('id', true).single(),
+  ]);
+  if(rowsErr){
+    showToast('Could not load ledger data: ' + rowsErr.message, true);
+    return;
+  }
+  data = (rows||[]).map(r => ({
+    partner: r.partner, arn: r.arn, rm: r.rm, value: r.value,
+    date: r.date, submittedDate: r.submitted_date, completedDate: r.completed_date,
+    amc: r.amc, status: r.status,
+  }));
+  if(!metaErr && meta && meta.last_synced_at){
+    lastUpdated = new Date(meta.last_synced_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) +
+      ' ' + new Date(meta.last_synced_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    lastFileName = 'Google Sheet (live)';
+  }
+  renderTable();
+  recalc();
+}
+
+async function manualSync(){
+  const btn = document.getElementById('syncBtn');
+  btn.disabled = true;
+  btn.textContent = '🔄 Syncing…';
+  try{
+    const { data: fnData, error } = await sb.functions.invoke('manual-sync');
+    if(error) throw error;
+    showToast('Sync triggered — refreshing in a few seconds…');
+    setTimeout(async () => { await loadFromSupabase(); }, 6000);
+  }catch(e){
+    showToast('Could not trigger sync: ' + (e.message||e), true);
+  }
+  btn.disabled = false;
+  btn.textContent = '🔄 Sync Now';
+}
+
+if(AUTH_ENABLED){
+  sb.auth.onAuthStateChange((event, session) => {
+    if(session){ showDashboard(); } else { showAuthScreen(); }
+  });
+
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if(session){ showDashboard(); } else { showAuthScreen(); }
+  });
+} else {
+  showDashboard();
+}
+</script>
+</body>
+</html>

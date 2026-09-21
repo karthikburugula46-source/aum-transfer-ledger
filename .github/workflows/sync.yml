@@ -1,0 +1,31 @@
+name: Sync Sheet to Supabase
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 */6 * * *'  # safety-net keep-alive; primary sync is the onEdit webhook + manual button
+
+permissions:
+  contents: read
+  id-token: write  # required for Workload Identity Federation
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install --no-save @supabase/supabase-js googleapis
+      - run: npm run sync
+        env:
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          SHEET_TAB: ${{ vars.SHEET_TAB }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
