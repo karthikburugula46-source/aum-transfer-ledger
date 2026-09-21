@@ -431,40 +431,22 @@
     render();
   }
 
-  function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
-
-  // Polls sync_meta until last_synced_at moves past the value it had before
-  // this sync was triggered, then reloads the ledger. A real Actions run
-  // (queue + checkout + auth + install + execute) takes anywhere from ~10s
-  // to a bit over a minute, so we poll rather than guess a fixed delay.
-  async function waitForSyncToComplete(baselineSyncedAt, btn){
-    const POLL_INTERVAL_MS = 3000;
-    const MAX_WAIT_MS = 120000;
-    const startedAt = Date.now();
-
-    while(Date.now() - startedAt < MAX_WAIT_MS){
-      await sleep(POLL_INTERVAL_MS);
-      const { data, error } = await sb.from('sync_meta').select('last_synced_at').eq('id', true).single();
-      if(!error && data && data.last_synced_at && data.last_synced_at !== baselineSyncedAt){
-        await loadData();
-        showToast(`Synced — ${state.rows.length} record(s) loaded.`);
-        return;
-      }
-      const elapsed = Math.round((Date.now() - startedAt) / 1000);
-      btn.textContent = `🔄 Syncing… (${elapsed}s)`;
-    }
-    showToast('Sync is taking longer than expected — check the Actions tab on GitHub.', true);
-  }
-
+  // manual-sync now does the whole Sheet-read + Supabase-write inline and
+  // only responds once it's actually done, so there's nothing to poll for —
+  // await the call, then reload.
   async function triggerManualSync(){
     const btn = $('syncBtn');
     btn.disabled = true;
     btn.textContent = '🔄 Syncing…';
     try{
-      const baselineSyncedAt = state.lastSyncedAtRaw;
-      const { error } = await sb.functions.invoke('manual-sync');
+      const { data, error } = await sb.functions.invoke('manual-sync');
       if(error) throw error;
-      await waitForSyncToComplete(baselineSyncedAt, btn);
+      if(data && data.ok === false){
+        showToast(data.message || 'Sync completed with no rows found.', true);
+      } else {
+        await loadData();
+        showToast(`Synced — ${state.rows.length} record(s) loaded.`);
+      }
     }catch(e){
       showToast('Could not trigger sync: ' + (e.message || e), true);
     }
